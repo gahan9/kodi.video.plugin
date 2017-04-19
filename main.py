@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 # Module: default
 import sys
+import json, copy
+import requests
+import re
+import urllib
 from urllib import urlencode
 from urlparse import parse_qsl
+from BeautifulSoup import BeautifulSoup
+import xbmc
 import xbmcgui
 import xbmcplugin
 
@@ -11,62 +17,48 @@ _url = sys.argv[0]
 # Get the plugin handle as an integer number.
 _handle = int(sys.argv[1])
 
-# Free sample videos are provided by www.vidsplay.com
-# Here we use a fixed set of properties simply for demonstrating purposes
-# In a "real life" plugin you will need to get info and links to video files/streams
-# from some web-site or online service.
-VIDEOS = {'Animals': [{'name': 'Crab',
-                       'thumb': 'http://www.vidsplay.com/vids/crab.jpg',
-                       'video': 'http://www.vidsplay.com/vids/crab.mp4',
-                       'genre': 'Animals'},
-                      {'name': 'Alligator',
-                       'thumb': 'http://www.vidsplay.com/vids/alligator.jpg',
-                       'video': 'http://www.vidsplay.com/vids/alligator.mp4',
-                       'genre': 'Animals'},
-                      {'name': 'Turtle',
-                       'thumb': 'http://www.vidsplay.com/vids/turtle.jpg',
-                       'video': 'http://www.vidsplay.com/vids/turtle.mp4',
-                       'genre': 'Animals'}
-                      ],
-            'Cars': [{'name': 'Postal Truck',
-                      'thumb': 'http://www.vidsplay.com/vids/us_postal.jpg',
-                      'video': 'http://www.vidsplay.com/vids/us_postal.mp4',
-                      'genre': 'Cars'},
-                     {'name': 'Traffic',
-                      'thumb': 'http://www.vidsplay.com/vids/traffic1.jpg',
-                      'video': 'http://www.vidsplay.com/vids/traffic1.avi',
-                      'genre': 'Cars'},
-                     {'name': 'Traffic Arrows',
-                      'thumb': 'http://www.vidsplay.com/vids/traffic_arrows.jpg',
-                      'video': 'http://www.vidsplay.com/vids/traffic_arrows.mp4',
-                      'genre': 'Cars'}
-                     ],
-            'Food': [{'name': 'Chicken',
-                      'thumb': 'http://www.vidsplay.com/vids/chicken.jpg',
-                      'video': 'http://www.vidsplay.com/vids/bbqchicken.mp4',
-                      'genre': 'Food'},
-                     {'name': 'Hamburger',
-                      'thumb': 'http://www.vidsplay.com/vids/hamburger.jpg',
-                      'video': 'http://www.vidsplay.com/vids/hamburger.mp4',
-                      'genre': 'Food'},
-                     {'name': 'Pizza',
-                      'thumb': 'http://www.vidsplay.com/vids/pizza.jpg',
-                      'video': 'http://www.vidsplay.com/vids/pizza.mp4',
-                      'genre': 'Food'}
-                     ],
-            'Movies': [{'name': 'Kung Fu Panda 3',
-                      'thumb': 'http://img.ccrd.clearchannel.com/media/mlib/1806/2016/01/default/kung_fu_panda_3_0_1452014100.jpg',
-                      'video': 'http://dl2.mihanpix.com/Film/2016/Kung.Fu.Panda.3.2016.720p.BRrip.Exclusive.Farsi.Dubbed.%282Dooble%29.mkv',
-                      'genre': 'Sci-Fi'},
-                     {'name': 'Guardians of the Galaxy vol 2',
-                      'thumb': 'http://cdn2-www.comingsoon.net/assets/uploads/gallery/guardians-of-the-galaxy-2-1406427000/guardian2poster.jpg',
-                      'video': 'special://home//addons/plugin.video.example/resources/media/Guardians.of.the.Galaxy.Vol.2.Trailer.mp4',
-                      'genre': 'Food'},
-                     {'name': 'War Craft',
-                      'thumb': 'http://hdonline24h.com/upload/images/warcraft-dai-chien-hai-the-gioi.jpg',
-                      'video': 'http://dl2.mihanpix.com/Film/2016/Warcraft.2016.1080p.6CH.ShAaNiG.mkv',
-                      'genre': 'Movie'}
-                     ]}
+# Get Url
+LIST_MOVIES_JSON = "http://yts.ag/api/v2/list_movies.json"
+# base_url = "https://yts.ag/api/v2/list_movies.json"
+# uri = ''
+opt_qualities = ['720p', '1080p', '3D', 'ALL']
+opt_ratings = range(10)
+opt_sorts = ['date', 'seeds', 'size', 'alphabet', 'rating']
+opt_orders = ['desc', 'asc']
+
+movie_list_params = {
+    'limit': 20,  # Maximum number of returned items
+    'set': 1,  # Which set (page) do you want to return?
+    'quality': 'ALL',  # {720p, 1080p, 3D, ALL}
+    'rating': 0,  # Minimum rating between 0 - 9
+    'keywords': '',  # {String}
+    'genre': 'ALL',  # {String} Refer to http://www.imdb.com/genre/
+    'sort': 'date',  # {date, seeds, size, alphabet, rating}
+    'order': 'desc'  # {desc, asc}
+}
+
+VIDEOS = {}
+
+
+def fetch_data(url):
+    """
+    Fetch Json file and return as python list if response is 200
+x[]
+    :param url: json url
+    :return: list if success else None
+    """
+    get_url_response = requests.get(url)
+    if get_url_response.status_code == 200:
+        return json.loads(get_url_response.text)
+    else:
+        return None
+
+
+xbmc.log("got url")
+json_data = fetch_data(LIST_MOVIES_JSON)
+if json_data is not None:
+    VIDEOS['movies'] = json_data['data']['movies']
+xbmc.log("got data")
 
 
 def get_url(**kwargs):
@@ -129,17 +121,18 @@ def list_categories():
         # Set graphics (thumbnail, fanart, banner, poster, landscape etc.) for the list item.
         # Here we use the same image for all items for simplicity's sake.
         # In a real-life plugin you need to set each image accordingly.
-        list_item.setArt({'thumb': VIDEOS[category][0]['thumb'],
-                          'icon': VIDEOS[category][0]['thumb'],
-                          'fanart': VIDEOS[category][0]['thumb']})
+        list_item.setArt({'thumb': VIDEOS[category][0]['medium_cover_image'],
+                          'icon': VIDEOS[category][0]['small_cover_image'],
+                          'fanart': VIDEOS[category][0]['background_image_original']})
         # Set additional info for the list item.
-        # Here we use a category name for both properties for for simplicity's sake.
         # setInfo allows to set various information for an item.
-        # For available properties see the following link:
-        # http://mirrors.xbmc.org/docs/python-docs/15.x-isengard/xbmcgui.html#ListItem-setInfo
-        list_item.setInfo('video', {'title': category, 'genre': category})
-        list_item.addContextMenuItems([ ('Refresh', 'Container.Refresh'),
-                         ('Go up', 'Action(ParentDir)') ])
+        list_item.setInfo('video', {'title': VIDEOS[category][0]['title_long'],
+                                    'genre': VIDEOS[category][0]['genres'][0],
+                                    'rating': VIDEOS[category][0]['rating'],
+                                    'release_year': VIDEOS[category][0]['year'],
+                                    'details': VIDEOS[category][0]['description_full']})
+        list_item.addContextMenuItems([('Refresh', 'Container.Refresh'),
+                                       ('Go up', 'Action(ParentDir)')])
         # Create a URL for a plugin recursive call.
         # Example: plugin://plugin.video.example/?action=listing&category=Animals
         url = get_url(action='listing', category=category)
@@ -165,30 +158,50 @@ def list_videos(category):
     # Iterate through videos.
     for video in videos:
         # Create a list item with a text label and a thumbnail image.
-        list_item = xbmcgui.ListItem(label=video['name'])
+        list_item = xbmcgui.ListItem(label=video['title'])
         # Set additional info for the list item.
-        list_item.setInfo('video', {'title': video['name'], 'genre': video['genre']})
+        list_item.setInfo('video', {'title': video['title'], 'genre': video['genres'][0]})
         # Set graphics (thumbnail, fanart, banner, poster, landscape etc.) for the list item.
         # Here we use the same image for all items for simplicity's sake.
         # In a real-life plugin you need to set each image accordingly.
-        list_item.setArt({'thumb': video['thumb'], 'icon': video['thumb'], 'fanart': video['thumb']})
+        list_item.setArt({'thumb': video['medium_cover_image'], 'icon': video['small_cover_image'], 'fanart': video['background_image_original']})
         # Set 'IsPlayable' property to 'true'.
         # This is mandatory for playable items!
-        list_item.setProperty('IsPlayable', 'true')
-        list_item.addContextMenuItems([ ('Refresh', 'Container.Refresh'),
-                         ('Go up', 'Action(ParentDir)') ])
-        # Create a URL for a plugin recursive call.
+        # list_item.setProperty('IsPlayable', 'true')
+        list_item.setProperty('fanart', video['background_image_original'])
+        list_item.addContextMenuItems([('Refresh', 'Container.Refresh'),
+                                       ('Details', 'ActivateWindow(songinformation)'),
+                                       ('Go up', 'Action(ParentDir)')])
         # Example: plugin://plugin.video.example/?action=play&video=http://www.vidsplay.com/vids/crab.mp4
-        url = get_url(action='play', video=video['video'])
+        # url = get_url(action='play', video=video['video'])
+        url = get_url(action='show', video=video['url'])
         # Add the list item to a virtual Kodi folder.
         # is_folder = False means that this item won't open any sub-list.
-        is_folder = False
+        is_folder = True
         # Add our item to the Kodi virtual folder listing.
+        # xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
         xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
     # Add a sort method for the virtual folder items (alphabetically, ignore articles)
     xbmcplugin.addSortMethod(_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     # Finish creating a virtual folder.
     xbmcplugin.endOfDirectory(_handle)
+
+
+def list_details(arg):
+    """
+
+    :param arg:
+    :return:
+    """
+    movie_page_request = requests.get(arg)
+    movie_page_beutify = BeautifulSoup(movie_page_request.text)
+    movie_info = movie_page_beutify.find('div', id='movie-info')
+    movie_name = movie_info.findAll('h1')[0].string
+    movie_year = 'Release Year: ' + movie_info.findAll('h2')[0].string
+    movie_genre = 'Genre: ' + movie_info.findAll('h2')[1].string.replace('/', ',')
+    movie_rating = 'Rating: ' + movie_info.findAll('span', itemprop="ratingValue")[0].string
+    # return xbmc.executebuiltin(ActivateWindow(movieinformation))
+    return xbmcgui.Dialog().ok(movie_name, movie_year, movie_genre, movie_rating)
 
 
 def play_video(path):
@@ -198,10 +211,11 @@ def play_video(path):
     :param path: Fully-qualified video URL
     :type path: str
     """
-    # Create a playable item with a path to play.
-    play_item = xbmcgui.ListItem(path=path)
-    # Pass the item to the Kodi player.
-    xbmcplugin.setResolvedUrl(_handle, True, listitem=play_item)
+    xbmcgui.Dialog().ok('**Name', 'clicked')
+    # # Create a playable item with a path to play.
+    # play_item = xbmcgui.ListItem(path=path)
+    # # Pass the item to the Kodi player.
+    # xbmcplugin.setResolvedUrl(_handle, True, listitem=play_item)
 
 
 def router(paramstring):
@@ -220,9 +234,12 @@ def router(paramstring):
         if params['action'] == 'listing':
             # Display the list of videos in a provided category.
             list_videos(params['category'])
-        elif params['action'] == 'play':
+        elif params['action'] == 'show':
             # Play a video from a provided URL.
-            play_video(params['video'])
+            # list_details(params['video'])
+            # xbmc.log('log')
+            xbmc.executebuiltin('ActivateWindow(movieinformation)')
+
         else:
             # If the provided paramstring does not contain a supported action
             # we raise an exception. This helps to catch coding errors,
@@ -238,3 +255,4 @@ if __name__ == '__main__':
     # Call the router function and pass the plugin call parameters to it.
     # We use string slicing to trim the leading '?' from the plugin call paramstring
     router(sys.argv[2][1:])
+    # list_categories()
