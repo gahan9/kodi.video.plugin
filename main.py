@@ -237,23 +237,32 @@ def router(paramstring):
     if params:
         if params['action'] == 'listing':
             # Display the list of videos in a provided category.
+            xbmc.log('Param : listing videos', 2)
             list_videos(params['category'])
+            xbmc.log('Param : listing videos successful', 2)
         elif params['action'] == 'show':
             # Play a video from a provided URL.
+            xbmc.log('Param : listing details', 2)
             list_details(params['video'])
-            # xbmc.log('log')
+            xbmc.log('Param : listing details successful ', 2)
             # xbmc.executebuiltin('ActivateWindow(movieinformation)')
         elif params['action'] == 'load':
+            xbmc.log('Param : loading page ', 2)
             load_page(params['page_number'])
+            xbmc.log('Param : loading page successful!', 2)
         else:
             # If the provided paramstring does not contain a supported action
             # we raise an exception. This helps to catch coding errors,
             # e.g. typos in action names.
+            xbmc.log('Param : value error', 2)
             raise ValueError('Invalid paramstring: {0}!'.format(paramstring))
     else:
         # If the plugin is called from Kodi UI without any parameters,
         # display the list of video categories
+        xbmc.log('Param : listing categories', 2)
         list_categories()
+        xbmc.log('Param : listing categories successful', 2)
+
 
 
 if __name__ == '__main__':
