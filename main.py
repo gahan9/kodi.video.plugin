@@ -100,9 +100,8 @@ def get_videos(category):
     xbmc.log('Retriving movie list.............', 2)
     xbmc.log('Category is .............' + category, 2)
     xbmc.log('Retriving movie list.............', 2)
-    xbmc.log('type of videos' + str(VIDEOS), 2)
-    # xbmc.log('type of videos' + str(len(VIDEOS[category])), 2)
-    # return VIDEOS[category]
+    xbmc.log('type of videos' + str(len(VIDEOS)), 2)
+    return VIDEOS[category]
 
 
 def list_categories():
@@ -158,14 +157,13 @@ def list_videos(category):
     """
     # Get the list of videos in the category.
     xbmc.log('in listing videos*******************************', 2)
+    load_page()
     videos = get_videos(category)
     # Iterate through videos.
     listing = []
     # panel = self.getControl(123)
     for video in videos:
         xbmc.log('in listing videos loop////////', 2)
-        xbmc.log(video['title'], 2)
-        xbmc.log(video['title'], 2)
         xbmc.log(video['title'], 2)
         # Create a list item with a text label and a thumbnail image.
         list_item = xbmcgui.ListItem(label=video['title'])
@@ -248,7 +246,7 @@ def router(paramstring):
             # xbmc.executebuiltin('ActivateWindow(movieinformation)')
         elif params['action'] == 'load':
             xbmc.log('Param : loading page ', 2)
-            load_page(params['page_number'])
+            load_page()
             xbmc.log('Param : loading page successful!', 2)
         else:
             # If the provided paramstring does not contain a supported action
