@@ -27,9 +27,9 @@ VIDEOS = {}
 
 
 def fetch_data(_URI, _page_number):
-    xbmc.log('fetching json file..............', 2)
+    # xbmc.log('fetching json file..............', 2)
     url_to_fetch = _URI + '?page_number=' + str(_page_number)
-    xbmc.log('fetching url : ' + url_to_fetch, 2)
+    # xbmc.log('fetching url : ' + url_to_fetch, 2)
     get_url_response = requests.get(url_to_fetch)
     if get_url_response.status_code == 200:
         return json.loads(get_url_response.text)
@@ -38,17 +38,24 @@ def fetch_data(_URI, _page_number):
 
 
 def load_page():
-    xbmc.log('loading page..........', 2)
+    # xbmc.log('loading page..........', 2)
 
     if _URI == BASE_URL:
         this_page = _page_number
     else:
         this_page = _page_number + 1
     json_data = fetch_data(_URI, this_page)
-    xbmc.log('type of json_data: ' + str(type(json_data)), 2)
+    # xbmc.log('type of json_data: ' + str(type(json_data)), 2)
     if json_data is not None:
         VIDEOS['movies'] = json_data['data']['movies']
         # xbmc.log('listing length: ' + str(VIDEOS.keys()), 2)
+
+
+def json_update():
+    xbmc.log('In json Update********', 2)
+    xbmc.sleep(15)
+    load_page()
+    list_videos('movies')
 
 
 def get_url(**kwargs):
@@ -60,7 +67,7 @@ def get_url(**kwargs):
     :return: plugin call URL
     :rtype: str
     """
-    xbmc.log('formating url.......', 2)
+    # xbmc.log('formating url.......', 2)
     return '{0}?{1}'.format(_url, urlencode(kwargs))
 
 
@@ -78,7 +85,7 @@ def get_categories():
     :return: The list of video categories
     :rtype: list
     """
-    xbmc.log('Retriving categories', 2)
+    # xbmc.log('Retriving categories', 2)
     return VIDEOS.iterkeys()
 
 
@@ -97,10 +104,10 @@ def get_videos(category):
     :return: the list of videos in the category
     :rtype: list
     """
-    xbmc.log('Retriving movie list.............', 2)
-    xbmc.log('Category is .............' + category, 2)
-    xbmc.log('Retriving movie list.............', 2)
-    xbmc.log('type of videos' + str(len(VIDEOS)), 2)
+    # xbmc.log('Retriving movie list.............', 2)
+    # xbmc.log('Category is .............' + category, 2)
+    # xbmc.log('Retriving movie list.............', 2)
+    # xbmc.log('type of videos' + str(len(VIDEOS)), 2)
     return VIDEOS[category]
 
 
@@ -142,8 +149,7 @@ def list_categories():
         # Add our item to the Kodi virtual folder listing.
         xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
     # Add a sort method for the virtual folder items (alphabetically, ignore articles)
-    # xbmcplugin.addDirectoryItem(_handle, url='{0}?action=load&page_number={1}'.format(_url, _page_number), liz=xbmcgui.ListItem(label='more....'), is_folder=True)
-    xbmcplugin.addSortMethod(_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+    # xbmcplugin.addSortMethod(_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     # Finish creating a virtual folder.
     xbmcplugin.endOfDirectory(_handle)
 
@@ -159,26 +165,26 @@ def list_videos(category):
     xbmc.log('in listing videos*******************************', 2)
     load_page()
     videos = get_videos(category)
+    xbmc.log('video : ' + str(type(videos)), 2)
     # Iterate through videos.
-    listing = []
     # panel = self.getControl(123)
     for video in videos:
-        xbmc.log('in listing videos loop////////', 2)
-        xbmc.log(video['title'], 2)
+        xbmc.log('single video object : ' + str(video), 2)
         # Create a list item with a text label and a thumbnail image.
         list_item = xbmcgui.ListItem(label=video['title'])
-        # list_item.setArt({'thumb': video['medium_cover_image'], 'icon': video['small_cover_image'], 'fanart': video['background_image']})
+        list_item.setArt({'thumb': video['medium_cover_image'], 'icon': video['small_cover_image'], 'fanart': video['background_image']})
         # Set 'IsPlayable' property to 'true'. This is mandatory for playable items!
         # list_item.setProperty('IsPlayable', 'true')
         list_item.setProperty('fanart_image', video['background_image'])
         # listing.append((url, list_item, is_folder))
         list_item.addContextMenuItems([('Refresh', 'Container.Refresh'),
                                        ('Details', 'ActivateWindow(movieinformation)'),
+                                       ('Next Page', 'ActivateWindow(100025)'),
                                        ('Go up', 'Action(ParentDir)')])
         # Example: plugin://plugin.video.example/?action=play&video=http://www.vidsplay.com/vids/crab.mp4
         # url = get_url(action='play', video=video['video'])
         url = get_url(action='show', video=video['url'])
-        # url = '{0}?action=listing&category={1}'.format(_url, category)
+        # url = '{0}?action=listing&video={1}'.format(_url, video['url'])
         # Add the list item to a virtual Kodi folder.
         # is_folder = False means that this item won't open any sub-list.
         is_folder = True
