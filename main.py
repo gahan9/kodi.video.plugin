@@ -17,45 +17,46 @@ import xbmcplugin
 _url = sys.argv[0]
 # Get the plugin handle as an integer number.
 _handle = int(sys.argv[1])
-_page_number = 0
 
 # Get Url
-BASE_URL = "http://yts.ag/api/v2/list_movies.json"
-_URI = "http://yts.ag/api/v2/list_movies.json"
+BASE_URL = "http://yts.ag/api/v2/list_movies.json?page=1"
+_URI = ""
 
 VIDEOS = {}
+THIS_PAGE = {'page': 1}
 
 
-def fetch_data(_URI, _page_number):
-    # xbmc.log('fetching json file..............', 2)
-    url_to_fetch = _URI + '?page_number=' + str(_page_number)
-    # xbmc.log('fetching url : ' + url_to_fetch, 2)
-    get_url_response = requests.get(url_to_fetch)
+def fetch_data(page):
+    xbmc.log('In FUN=fetch_data()  **********', 2)
+    xbmc.log('fetching json file..............', 2)
+    if page is None:
+        page = 1
+    else:
+        pass
+    _URI = BASE_URL.split("=")[0] + "=" + str(page)
+    xbmc.log('fetching url : ' + _URI, 2)
+    get_url_response = requests.get(_URI)
     if get_url_response.status_code == 200:
+        THIS_PAGE['page'] = int(json.loads(get_url_response.text)['data']['page_number'])
         return json.loads(get_url_response.text)
     else:
         return None
 
 
 def load_page():
-    # xbmc.log('loading page..........', 2)
-
-    if _URI == BASE_URL:
-        this_page = _page_number
-    else:
-        this_page = _page_number + 1
-    json_data = fetch_data(_URI, this_page)
-    # xbmc.log('type of json_data: ' + str(type(json_data)), 2)
+    xbmc.log('In FUN=load_page() **********', 2)
+    # page_num = _URI.split("=")[-1]
+    xbmc.log('URI : ' + _URI, 2)
+    xbmc.log('page num : ' + str(THIS_PAGE['page']), 2)
+    page_num = int(THIS_PAGE['page']) + 1
+    xbmc.log('Current page number : ', page_num)
+    json_data = fetch_data(page_num)
+    xbmc.log('')
+    xbmc.log('type of json_data: ' + str(type(json_data)), 2)
     if json_data is not None:
         VIDEOS['movies'] = json_data['data']['movies']
+        THIS_PAGE['page'] = page_num
         # xbmc.log('listing length: ' + str(VIDEOS.keys()), 2)
-
-
-def json_update():
-    xbmc.log('In json Update********', 2)
-    xbmc.sleep(15)
-    load_page()
-    list_videos('movies')
 
 
 def get_url(**kwargs):
@@ -67,6 +68,7 @@ def get_url(**kwargs):
     :return: plugin call URL
     :rtype: str
     """
+    xbmc.log('In FUN=get_url()  **********', 2)
     # xbmc.log('formating url.......', 2)
     return '{0}?{1}'.format(_url, urlencode(kwargs))
 
@@ -85,6 +87,7 @@ def get_categories():
     :return: The list of video categories
     :rtype: list
     """
+    xbmc.log('In FUN=get_categories()  **********', 2)
     # xbmc.log('Retriving categories', 2)
     return VIDEOS.iterkeys()
 
@@ -104,6 +107,7 @@ def get_videos(category):
     :return: the list of videos in the category
     :rtype: list
     """
+    xbmc.log('In FUN=get_videos()  **********', 2)
     # xbmc.log('Retriving movie list.............', 2)
     # xbmc.log('Category is .............' + category, 2)
     # xbmc.log('Retriving movie list.............', 2)
@@ -116,8 +120,8 @@ def list_categories():
     Create the list of video categories in the Kodi interface.
     """
     # Get video categories
-    xbmc.log('listing categories................', 2)
-
+    xbmc.log('In FUN=list_categories()  **********', 2)
+    # xbmc.log('listing categories................', 2)
     load_page()
     categories = get_categories()
     # Iterate through categories
@@ -161,15 +165,14 @@ def list_videos(category):
     :param category: Category name
     :type category: str
     """
+    xbmc.log('In FUN=list_videos()  **********', 2)
     # Get the list of videos in the category.
-    xbmc.log('in listing videos*******************************', 2)
+    # xbmc.log('in listing videos*******************************', 2)
     load_page()
     videos = get_videos(category)
-    xbmc.log('video : ' + str(type(videos)), 2)
     # Iterate through videos.
     # panel = self.getControl(123)
     for video in videos:
-        xbmc.log('single video object : ' + str(video), 2)
         # Create a list item with a text label and a thumbnail image.
         list_item = xbmcgui.ListItem(label=video['title'])
         list_item.setArt({'thumb': video['medium_cover_image'], 'icon': video['small_cover_image'], 'fanart': video['background_image']})
@@ -179,7 +182,6 @@ def list_videos(category):
         # listing.append((url, list_item, is_folder))
         list_item.addContextMenuItems([('Refresh', 'Container.Refresh'),
                                        ('Details', 'ActivateWindow(movieinformation)'),
-                                       ('Next Page', 'ActivateWindow(100025)'),
                                        ('Go up', 'Action(ParentDir)')])
         # Example: plugin://plugin.video.example/?action=play&video=http://www.vidsplay.com/vids/crab.mp4
         # url = get_url(action='play', video=video['video'])
@@ -193,14 +195,21 @@ def list_videos(category):
         # xbmcplugin.addDirectoryItem(_handle, url, listing, len(listing))
     # panel.addItems(listing)
     # next_page = xbmcgui.ListItem(label='more...')
-    # xbmcplugin.addDirectoryItem(_handle, next_page, 'Container.Refresh')
     # Add a sort method for the virtual folder items (alphabetically, ignore articles)
-    xbmcplugin.addSortMethod(_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+    # xbmcplugin.addSortMethod(_handle, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     # Finish creating a virtual folder.
+    xbmcplugin.addDirectoryItem(_handle, url='{0}?action=load&video={1}'.format(_url, category), listitem=xbmcgui.ListItem(label='More >>>'), isFolder=True)
     xbmcplugin.endOfDirectory(_handle)
 
 
 def list_details(movie_url):
+    """
+    scrap details of movie for a given url
+
+    :param movie_url: url of movie web page
+    :return: load xbmc page of deails of movie from param
+    """
+    xbmc.log('In FUN=list_details()  **********', 2)
     movie_details = []
     movie_page_request = requests.get(movie_url)
     movie_page_beutify = BeautifulSoup(movie_page_request.text)
@@ -252,7 +261,7 @@ def router(paramstring):
             # xbmc.executebuiltin('ActivateWindow(movieinformation)')
         elif params['action'] == 'load':
             xbmc.log('Param : loading page ', 2)
-            load_page()
+            list_videos(params['video'])
             xbmc.log('Param : loading page successful!', 2)
         else:
             # If the provided paramstring does not contain a supported action
@@ -266,7 +275,6 @@ def router(paramstring):
         xbmc.log('Param : listing categories', 2)
         list_categories()
         xbmc.log('Param : listing categories successful', 2)
-
 
 
 if __name__ == '__main__':
