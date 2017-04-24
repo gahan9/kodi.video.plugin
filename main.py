@@ -69,7 +69,7 @@ def list_videos(page):
     load_page(cur_page)
     movie_name = VIDEOS['movies']
     for video in movie_name:
-        main_list(video['title_long'], video['medium_cover_image'], video['background_image'], 'show', video['url'], isFolder=True)
+        main_list(video['title_long'], urllib.quote_plus(video['medium_cover_image']), urllib.quote_plus(video['background_image']), 'show', urllib.quote_plus(video['url']), isFolder=True)
     # xbmc.log("my data........" + str(VIDEOS['movies']), 2)
     # xbmc.log('videos : ' + str(videos), 2)
 
@@ -83,9 +83,9 @@ def main_list(name, thumb, fanart, mode, path, isFolder=False):
     u = "plugin://plugin.video.example/"
     u += "?name=" + str(name)
     u += "&action=" + str(mode)
-    u += "&url=" + str(urllib.url2pathname(path))
-    u += "&fanart=" + str(urllib.url2pathname(fanart))
-    u += "&thumb=" + str(urllib.url2pathname(thumb))
+    u += "&url=" + str(urllib.unquote_plus(path))
+    u += "&fanart=" + str(urllib.unquote_plus(fanart))
+    u += "&thumb=" + str(urllib.unquote_plus(thumb))
     # xbmc.log('url' + str(u), 2)
     liz = xbmcgui.ListItem(label=name, iconImage="", thumbnailImage=thumb)
     liz.setInfo(type="video", infoLabels={"label": name, "title": name})
@@ -100,7 +100,7 @@ def main_list(name, thumb, fanart, mode, path, isFolder=False):
 def list_details(movie_url):
     xbmc.log('In FUN=list_details()  **********', 2)
     movie_details = []
-    movie_page_request = requests.get(movie_url)
+    movie_page_request = requests.get(urllib.unquote_plus(movie_url))
     movie_page_beutify = BeautifulSoup(movie_page_request.text)
     movie_info = movie_page_beutify.find('div', id='movie-info')
     movie_name = movie_info.findAll('h1')[0].string
@@ -116,10 +116,10 @@ def list_details(movie_url):
     for info in movie_details:
         list_item = xbmcgui.ListItem(label=info)
         is_folder = False
-        url = get_url(action='link', video=movie_url)
-        xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
+        url = '{0}?action=donothing'.format('plugin://plugin.video.example/')
         list_item.setArt({'thumb': movie_thumb, 'icon': movie_thumb, 'fanart': movie_thumb})
         list_item.setInfo('video', {'title': movie_name, 'genre': movie_genre, 'rating': movie_rating})
+        xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
     xbmcplugin.endOfDirectory(_handle)
 
 
@@ -149,7 +149,7 @@ def router():
             xbmc.log('Param : listing videos successful', 2)
         elif param['action'] == 'show':
             xbmc.log('Param : listing details', 2)
-            list_details(urllib.url2pathname(param['url']))
+            list_details(param['url'])
             xbmc.log('Param : listing details successful ', 2)
         elif param['action'] == 'load':
             xbmc.log('Param : loading page ', 2)
