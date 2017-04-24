@@ -23,6 +23,7 @@ BASE_URL = "http://yts.ag/api/v2/list_movies.json?page=1"
 _URI = ""
 
 VIDEOS = {}
+THIS_PAGE = {}
 
 
 def fetch_data(page):
@@ -44,18 +45,14 @@ def load_page(page_num):
     json_data = fetch_data(page_num)
     xbmc.log('type of json_data: ' + str(type(json_data)), 2)
     if json_data is not None:
+        THIS_PAGE['page'] = json_data['data']['page_number']
         VIDEOS['movies'] = json_data['data']['movies']
-
-
-def get_categories():
-    xbmc.log('In FUN=get_categories()  **********', 2)
-    return VIDEOS.iterkeys()
 
 
 def list_categories():
     xbmc.log('In FUN=list_categories()  **********', 2)
     load_page(1)
-    categories = get_categories()
+    categories = VIDEOS.iterkeys()
     xbmc.log('categories : ' + str(categories), 2)
     for category in categories:
         xbmc.log('************************** - - - - : - - ' + str(VIDEOS[category]), 2)
@@ -64,15 +61,19 @@ def list_categories():
 
 def list_videos(page):
     xbmc.log('In FUN=list_videos()  **********', 2)
-    page += 1
-    load_page(page)
+    # page += 1
+    if page is None:
+        cur_page = 1
+    else:
+        cur_page = int(page) + 1
+    load_page(cur_page)
     movie_name = VIDEOS['movies']
     for video in movie_name:
         main_list(video['title_long'], video['medium_cover_image'], video['background_image'], 'show', video['url'], isFolder=True)
     # xbmc.log("my data........" + str(VIDEOS['movies']), 2)
     # xbmc.log('videos : ' + str(videos), 2)
 
-    xbmcplugin.addDirectoryItem(handle=abs(int(sys.argv[1])), url='{0}?action=load&page_num={1}'.format('plugin://plugin.video.example/', ), listitem=xbmcgui.ListItem(label='More >>>'), isFolder=True)
+    xbmcplugin.addDirectoryItem(handle=abs(int(sys.argv[1])), url='{0}?action=load&page_num={1}'.format('plugin://plugin.video.example/', THIS_PAGE['page']), listitem=xbmcgui.ListItem(label='More >>>'), isFolder=True)
 
 
 def main_list(name, thumb, fanart, mode, path, isFolder=False):
@@ -89,7 +90,7 @@ def main_list(name, thumb, fanart, mode, path, isFolder=False):
     liz = xbmcgui.ListItem(label=name, iconImage="", thumbnailImage=thumb)
     liz.setInfo(type="video", infoLabels={"label": name, "title": name})
     liz.addContextMenuItems([('Refresh', 'Container.Refresh'),
-                             # ('Details', 'ActivateWindow(movieinformation)'),
+                             ('Details', 'ActivateWindow(movieinformation)'),
                              ('Go up', 'Action(ParentDir)')])
     liz.setProperty("fanart", fanart)
     liz.setArt({'poster': thumb, 'fanart': fanart})
@@ -122,7 +123,6 @@ def list_details(movie_url):
     xbmcplugin.endOfDirectory(_handle)
 
 
-
 def router():
     # Parse a URL-encoded paramstring to the dictionary of
     # {<parameter>: <value>} elements
@@ -145,7 +145,7 @@ def router():
         if param['action'] == 'listing':
             # xbmc.log("----------------------here" + str(param['movies']), 2)
             xbmc.log('Param : listing videos', 2)
-            list_videos()
+            list_videos(0)
             xbmc.log('Param : listing videos successful', 2)
         elif param['action'] == 'show':
             xbmc.log('Param : listing details', 2)
@@ -153,7 +153,7 @@ def router():
             xbmc.log('Param : listing details successful ', 2)
         elif param['action'] == 'load':
             xbmc.log('Param : loading page ', 2)
-            list_videos()
+            list_videos(param['page_num'])
             xbmc.log('Param : loading page successful!', 2)
         else:
             xbmc.log('Param : value error', 2)
