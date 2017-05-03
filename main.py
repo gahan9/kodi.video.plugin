@@ -56,7 +56,7 @@ def list_categories():
     xbmc.log('categories : ' + str(categories), 2)
     for category in categories:
         xbmc.log('************************** - - - - : - - ' + str(VIDEOS[category]), 2)
-        main_list('Movies', VIDEOS[category][0]['medium_cover_image'], VIDEOS[category][0]['background_image_original'], 'listing', VIDEOS[category][0]['url'], isFolder=True)
+        main_list('Movies', urllib.quote_plus(VIDEOS[category][0]['medium_cover_image']), urllib.quote_plus(VIDEOS[category][0]['background_image_original']), 'listing', urllib.quote_plus(VIDEOS[category][0]['url']), isFolder=True)
 
 
 def list_videos(page):
@@ -69,7 +69,7 @@ def list_videos(page):
     load_page(cur_page)
     movie_name = VIDEOS['movies']
     for video in movie_name:
-        main_list(video['title_long'], urllib.quote_plus(video['medium_cover_image']), urllib.quote_plus(video['background_image']), 'show', urllib.quote_plus(video['url']), isFolder=True)
+        main_list(video['title_long'], urllib.quote_plus(str(video['medium_cover_image'])), urllib.quote_plus(str(video['background_image'])), 'show', urllib.quote_plus(str(video['url'])), isFolder=True)
     # xbmc.log("my data........" + str(VIDEOS['movies']), 2)
     # xbmc.log('videos : ' + str(videos), 2)
 
@@ -92,7 +92,7 @@ def main_list(name, thumb, fanart, mode, path, isFolder=False):
     liz.addContextMenuItems([('Refresh', 'Container.Refresh'),
                              ('Details', 'ActivateWindow(movieinformation)'),
                              ('Go up', 'Action(ParentDir)')])
-    liz.setProperty("fanart", fanart)
+    # metacache.insert("fanart", fanart)
     liz.setArt({'poster': thumb, 'fanart': fanart})
     xbmcplugin.addDirectoryItem(handle=abs(int(sys.argv[1])), url=u, listitem=liz, isFolder=True)
 
@@ -166,5 +166,7 @@ def router():
 
 if __name__ == '__main__':
     # router(sys.argv[2][1:])
+    xbmc.log('start.....................', 2)
+    xbmc.executebuiltin('LoadProfile(profilename,[prompt])')
     router()
     xbmcplugin.endOfDirectory(_handle,  cacheToDisc=False)
