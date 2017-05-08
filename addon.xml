@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.example" version="0.1.0" name="VID_PLUGIN" provider-name="GAHAN">
+<addon id="plugin.video.example" version="0.1.0" name="Shemaroo" provider-name="GAHAN_quixom">
 <requires>
     <import addon="script.module.pyxbmct" version="1.1.4"/>
     <import addon="xbmc.python" version="2.14.0"/>
     <import addon="script.module.requests" version="2.9.1"/>
     <import addon="script.module.beautifulsoup" version="3.2.1"/>
     <import addon="resource.images.studios.white" version="0.0.5"/>
-    <import addon="script.module.kodi65" version="1.0.0"/>
     <import addon="script.module.routing" version="0.1.0"/>
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
@@ -15,9 +14,9 @@
     <onclick>ActivateWindow(movieinformation)</onclick>
 <extension point="xbmc.addon.metadata">
     <onclick>ActivateWindow(movieinformation)</onclick>
-  <summary lang="en">First Kodi Video Plugin</summary>
-  <description lang="en">An example video plugin for Kodi mediacenter.</description>
-  <disclaimer lang="en">vids are provided by www.vidsplay.com and fetched movie lib.</disclaimer>
+  <summary lang="en">Kodi Video Plugin</summary>
+  <description lang="en">Youtube channel</description>
+  <disclaimer lang="en">vids are provided from youtube API</disclaimer>
   <assets>
     <icon>icon.png</icon>
     <fanart>fanart.png</fanart>
